@@ -129,8 +129,9 @@ public class ClientJMeterEngine implements JMeterEngine {
         JMeterContextService.clearTotalThreads();
         HashTree testTree = test;
 
+        PreCompiler compiler = null;
         synchronized(testTree) {
-            PreCompiler compiler = new PreCompiler(true);
+            compiler = new PreCompiler(true);
             testTree.traverse(compiler);  // limit the changes to client only test elements
             JMeterContextService.initClientSideVariables(compiler.getClientSideVariables());
             testTree.traverse(new TurnElementsOn());
@@ -163,6 +164,13 @@ public class ClientJMeterEngine implements JMeterEngine {
             } catch (RemoteException e) {
                 log.warn("Could not set properties: {}, error:{}", savep, e.getMessage(), e);
             }
+
+            synchronized(testTree) {
+                compiler.setMasterPass(true);
+                testTree.traverse(compiler);  // limit the changes to client only test elements
+                JMeterContextService.initClientSideVariables(compiler.getClientSideVariables());
+            }
+
             methodName="rrunTest()";
             remote.rrunTest();
             log.info("sent run command to {}", hostAndPort);
